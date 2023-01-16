@@ -1,5 +1,6 @@
 #!/bin/python3.10
 # REQUIRES 3.10 (I can rewrite it for lower versions, but it's uglier)
+from __future__ import annotations
 from enum import Enum
 from dataclasses import dataclass
 
@@ -35,16 +36,15 @@ class Operator(Enum):
 
 @dataclass
 class Variable:
+    char: str
     id: int
 
 
-Token = Operator | float | Function
-FunctionToken = Token | Variable
 
 class Function:
     name: str
     vars: list[Variable]
-    tokens: list[FunctionToken]
+    tokens: list[Operator | float | Function | Variable]
     
     def __init__(self, name, vars, tokens):
         self.name = name
@@ -118,7 +118,7 @@ class Calculator:
     def __init__():
         self.func_map = {}
 
-    def tokenise_expr(self, expr: str) -> list[Token]:
+    def tokenise_expr(self, expr: str) -> list[Operator | float | Function]:
         tokens = []
         for t in expr.split():
             if t in Operator:
@@ -132,7 +132,7 @@ class Calculator:
                     raise ValueError(f"Could not parse symbol {t}")
         return tokens
 
-    def eval_tokens(self, tokens: list[Token]) -> float:
+    def eval_tokens(self, tokens: list[Operator | float | Function]) -> float:
         stack = []
         for t in tokens:
             if isinstance(t, float):
