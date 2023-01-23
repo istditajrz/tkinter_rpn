@@ -1,5 +1,5 @@
 #!/bin/python3.10
-# REQUIRES 3.10 (I can rewrite it for lower versions, but it's uglier)
+# REQUIRES 3.10 (I can rewrite it for lower versions, but it's uglier) ({and a hard cap of 3.7.x enforced by __future__})
 from __future__ import annotations
 from enum import Enum
 from dataclasses import dataclass
@@ -115,7 +115,7 @@ class Function:
 class Calculator:
     func_map: dict[str, Function]
 
-    def __init__():
+    def __init__(self):
         self.func_map = {}
 
     def tokenise_expr(self, expr: str) -> list[Operator | float | Function]:
@@ -123,7 +123,7 @@ class Calculator:
         for t in expr.split():
             if t in Operator:
                 tokens.append(Operator(t))
-            elif t in self.func_map.keys():
+            if t in self.func_map.keys():
                 tokens.append(self.func_map[t])
             else:
                 try:
@@ -164,3 +164,7 @@ class Calculator:
             tokens = self.tokenise_expr(expr)
             return "> " + str(self.eval_tokens(tokens))
 
+if __name__ == '__main__':
+    c = Calculator()
+    while True:
+        print(c.eval_expr(input(">>> ")))
