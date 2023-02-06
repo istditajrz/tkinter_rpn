@@ -4,6 +4,7 @@ from __future__ import annotations
 from enum import Enum
 from dataclasses import dataclass
 
+
 class Operator(Enum):
     Add = "+"
     Sub = "-"
@@ -28,11 +29,13 @@ class Operator(Enum):
                 return pow(operand1, operand2)
             case _:
                 raise ValueError("Invalid operation")
+
     def __repr__(self):
         return str(self.value)
 
     def __str__(self):
         return str(self.value)
+
 
 @dataclass
 class Variable:
@@ -40,12 +43,11 @@ class Variable:
     id: int
 
 
-
 class Function:
     name: str
     vars: list[Variable]
     tokens: list[Operator | float | Function | Variable]
-    
+
     def __init__(self, name, vars, tokens):
         self.name = name
         self.vars = vars
@@ -84,22 +86,25 @@ class Function:
         return self.evaluate(*args)
 
     def parse(expr: str, func_map: dict[str, Function]) -> Function | None:
-        def tokenise_func_expr(expr: str, vars: list[str], func_map: dict[str, Function]) -> list[FunctionToken]:
+        def tokenise_func_expr(expr: str, vars: list[str], func_map: dict[str, Function]) -> list[Operator | float | Function | Variable]:
             tokens = []
             for t in expr.split():
-                if t in Operator:
-                    tokens.append(Operator(t))
-                elif t in func_map.keys():
+                if t in func_map.keys():
                     tokens.append(func_map[t])
                 elif t in vars:
-                    tokens.append(Variable(t))
+                    idx = vars.index(t)
+                    tokens.append(Variable(t, idx))
                 else:
+                    try:
+                        tokens.append(Operator(t))
+                        continue
+                    except ValueError:
+                        pass
                     try:
                         tokens.append(float(t))
                     except ValueError:
                         raise ValueError(f"Could not parse symbol {t}")
             return tokens
-
 
         spl = expr.split(':')
         if len(spl) == 1:
@@ -109,8 +114,9 @@ class Function:
         func_def = spl[0]
         func_expr = spl[1]
         (name, *args) = func_def.split()
-        func_tokens = tokenise_func_expr(func_expr, args, func_map)
+        func_tokens = tokenise_func_expr(func_expr.strip(), args, func_map)
         return Function(name, args, func_tokens)
+
 
 class Calculator:
     func_map: dict[str, Function]
@@ -121,11 +127,14 @@ class Calculator:
     def tokenise_expr(self, expr: str) -> list[Operator | float | Function]:
         tokens = []
         for t in expr.split():
-            if t in Operator:
-                tokens.append(Operator(t))
             if t in self.func_map.keys():
                 tokens.append(self.func_map[t])
             else:
+                try:
+                    tokens.append(Operator(t))
+                    continue
+                except ValueError:
+                    pass
                 try:
                     tokens.append(float(t))
                 except ValueError:
@@ -142,7 +151,7 @@ class Calculator:
                 if len(stack) < num_args:
                     raise ValueError(f"Too few arguments for function {t.name}, \
                             expected {num_args} found {len(stack)}")
-                stack.append(t(stack[-num_args:]))
+                stack.append(t([stack.pop() for _ in range(num_args)]))
             elif isinstance(t, Operator):
                 if len(stack) < 2:
                     raise ValueError("Insufficient operands for operator")
@@ -162,9 +171,16 @@ class Calculator:
             return f"Registered function: {function.name}"
         else:
             tokens = self.tokenise_expr(expr)
-            return "> " + str(self.eval_tokens(tokens))
+            return str(self.eval_tokens(tokens))
+
 
 if __name__ == '__main__':
     c = Calculator()
     while True:
-        print(c.eval_expr(input(">>> ")))
+        try:
+            i = input(">>> ")
+            if "\x04" in i:
+                break
+            print(c.eval_expr(i))
+        except ValueError as e:
+            print("ERROR:", e.args[0])
